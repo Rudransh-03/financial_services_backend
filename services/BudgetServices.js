@@ -15,9 +15,11 @@ const createBudget = async (req, res) => {
     const [endDay, endMonth, endYear] = endDate.split('/');
     endDate = `${endYear}/${endMonth}/${endDay}`;
 
+    const lowerCaseCategoryName = categoryName.toLowerCase();
+
     try {
         const category = await prismaClient.category.findUnique({
-            where: { name: categoryName },
+            where: { name: lowerCaseCategoryName },
         });
 
         if (!category) {
@@ -69,20 +71,32 @@ const getBudgetsForUser = async (req, res) => {
 };
 
 const trackBudget = async (req, res) => {
-    const categoryName = req.params.categoryName;
-    const userId = parseInt(req.params.userId, 10);
+    const categoryName = req.query.categoryName;
+    const lowerCaseCategoryName = categoryName.toLowerCase();
+    const userId = parseInt(req.query.userId, 10);
+
+    console.log(categoryName+" "+userId);
 
     try {
+        const category = await prismaClient.category.findUnique({
+            where:{
+                name: lowerCaseCategoryName
+            }
+        })
+
+        if(!category) return res.status(500).json({error: "Category not found!"});
+
         const budgets = await prismaClient.budget.findMany({
             where: {
-                categoryName: categoryName,
+                categoryId: category.id,
                 userId: userId,
             },
             include: { category: true }
         });
+
         res.json(budgets);
     } catch (error) {
-        res.status(500).json({ error: 'Error fetching budgets' });
+        res.status(500).json({ error: 'Error fetching budgets', message: error.message });
     }
 };
 
@@ -103,16 +117,33 @@ const getBudgetsForCategory = async (req, res) => {
 const editBudget = async (req, res) => {
     const id = parseInt(req.params.id, 10);
     const userId = parseInt(req.params.userId, 10);
-    const { amount, leftAmount, startDate, endDate, categoryName } = req.body;
+    const { amount, startDate, endDate, categoryName } = req.body;
 
-    if (!amount || !startDate || !endDate || !categoryName || !leftAmount) {
+    if (!amount || !startDate || !endDate || !categoryName) {
         return res.status(400).json({ error: "One of the fields is missing!" });
     }
 
+    const lowerCaseCategoryName = categoryName.toLowerCase();
+
     try {
+        const oldBudget = await prismaClient.budget.findUnique({
+            where:{
+                id: id
+            }
+        })
+
+        // console.log(oldBudget);
+
+        const amountDiff = amount - oldBudget.amount;
+        var leftAmount = oldBudget.leftAmount + amountDiff;
+
+        // console.log(leftAmount);
+
         const category = await prismaClient.category.findFirst({
-            where: { name: categoryName },
+            where: { name: lowerCaseCategoryName },
         });
+
+        // console.log(category);
 
         if (!category) {
             return res.status(400).json({ error: 'Category not found' });

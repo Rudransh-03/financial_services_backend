@@ -9,7 +9,7 @@ const authenticateToken = (req, res, next) => {
     return res.sendStatus(401);
   }
 
-  jwt.verify(token, 'your_jwt_secret', (err, user) => {
+  jwt.verify(token, process.env.JWT_SECRET, (err, user) => {
     if (err) {
       return res.sendStatus(403);
     }
