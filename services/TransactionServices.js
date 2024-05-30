@@ -167,6 +167,8 @@ const editTransaction = async (req, res) => {
 
   if(type === 'expense' && !categoryName) return res.status(400).json({ error: 'Category Name is required in type expense' });
 
+  if(type === 'income' && categoryName) return res.status(400).json({ error: 'Income type transaction cannot have a cateogry name'});
+
   try {
 
     const editDataBody = {
