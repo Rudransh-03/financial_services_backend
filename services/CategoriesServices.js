@@ -43,11 +43,11 @@ const editCategory = async (req, res) => {
   try {
     const updatedCategory = await prismaClient.category.update({
       where: { id: parseInt(id, 10) },
-      data: { lowerCaseCategoryName },
+      data: { name:lowerCaseCategoryName },
     });
     res.json(updatedCategory);
   } catch (error) {
-    res.status(500).json({ error: 'Error updating category' });
+    res.status(500).json({ error: 'Error updating category', message: error.message });
   }
 };
 

@@ -194,7 +194,7 @@ const editTransaction = async (req, res) => {
 
     res.json(updatedTransaction);
   } catch (error) {
-    res.status(500).json({ error: 'Error updating transaction' });
+    res.status(500).json({ error: 'Error updating transaction', message: error.message });
   }
 };
 

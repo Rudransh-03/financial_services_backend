@@ -1,4 +1,5 @@
 const { PrismaClient } = require('@prisma/client');
+const axios = require('axios');
 const prismaClient = new PrismaClient();
 
 const createBudget = async (req, res) => {
@@ -38,6 +39,12 @@ const createBudget = async (req, res) => {
         if (isPresent) {
             return res.status(400).json({ error: 'You cannot create multiple budgets for the same category for the same start/end dates' });
         }
+
+        const response = await axios.get("https://api.currencyapi.com/v3/latest?apikey=cur_live_GXATdj3zu93D8WwReUa6gyab1B8kzggNaFxI9sZ3");
+        const currencies = response.data.data;
+        
+        const usdObject = Object.values(currencies).find(currency => currency.code === 'USD');
+        console.log(usdObject);
 
         const budget = await prismaClient.budget.create({
             data: {
@@ -117,11 +124,17 @@ const getBudgetsForCategory = async (req, res) => {
 const editBudget = async (req, res) => {
     const id = parseInt(req.params.id, 10);
     const userId = parseInt(req.params.userId, 10);
-    const { amount, startDate, endDate, categoryName } = req.body;
+    let { amount, startDate, endDate, categoryName } = req.body;
 
     if (!amount || !startDate || !endDate || !categoryName) {
         return res.status(400).json({ error: "One of the fields is missing!" });
     }
+
+    const [startDay, startMonth, startYear] = startDate.split('/');
+    startDate = `${startYear}/${startMonth}/${startDay}`;
+
+    const [endDay, endMonth, endYear] = endDate.split('/');
+    endDate = `${endYear}/${endMonth}/${endDay}`;
 
     const lowerCaseCategoryName = categoryName.toLowerCase();
 
@@ -150,6 +163,22 @@ const editBudget = async (req, res) => {
         }
 
         const categoryId = category.id;
+
+        const isPresent = await prismaClient.budget.findFirst({
+            where: {
+                userId: userId,
+                categoryId: category.id,
+                startDate: startDate,
+                endDate: endDate,
+            },
+        });
+
+        console.log(categoryId+" "+oldBudget.categoryId);
+
+        if (isPresent && (categoryId !== oldBudget.categoryId)) {
+            return res.status(400).json({ error: 'You cannot create multiple budgets for the same category for the same start/end dates' });
+        }
+
 
         const updatedBudget = await prismaClient.budget.update({
             where: { id: id },
