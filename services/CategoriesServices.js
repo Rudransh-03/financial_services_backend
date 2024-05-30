@@ -48,7 +48,7 @@ const editCategory = async (req, res) => {
     res.json(updatedCategory);
   } catch (error) {
     res.status(500).json({ error: 'Error updating category', message: error.message });
-  }
+  } 
 };
 
 const deleteCategory = async (req, res) => {
