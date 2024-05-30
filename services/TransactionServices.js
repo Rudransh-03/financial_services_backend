@@ -157,6 +157,40 @@ const getIncomeTransactionsForUser = async (req, res) => {
   }
 };
 
+const getTransactionsForCategory = async (req, res) => {
+  const categoryName = req.params.categoryName;
+  const userId = parseInt(req.params.userId);
+
+  const lowerCaseCategoryName = categoryName.toLowerCase();
+
+  try {
+    const category = await prismaClient.category.findFirst({
+      where: {
+        name: lowerCaseCategoryName
+      }
+    })
+
+    if (!category) {
+      return res.status(404).json({ error: 'Category not found!!' });
+    }
+
+    const expenses = await prismaClient.transaction.findMany({
+      where: {
+        userId,
+        categoryId: category.id,
+      },
+      include: { category: true },
+    })
+
+    console.log(expenses);
+
+    res.json(expenses);
+  } catch (error) {
+    res.status(500).json({ error: 'Error fetching expenses for this category' });
+  }
+}
+
+
 const editTransaction = async (req, res) => {
   const id  = parseInt(req.params.id, 10);
   const { amount, name, type, categoryName } = req.body;
@@ -218,6 +252,7 @@ module.exports = {
   getExpenseTransactionsForUser,
   getIncome,
   getIncomeTransactionsForUser,
+  getTransactionsForCategory,
   editTransaction,
   deleteTransaction,
 };

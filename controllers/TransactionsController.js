@@ -7,6 +7,7 @@ const {
   getExpenseTransactionsForUser,
   getIncome,
   getIncomeTransactionsForUser,
+  getTransactionsForCategory,
   editTransaction,
   deleteTransaction
 } = require('../services/TransactionServices');
@@ -19,6 +20,7 @@ router.get('/getExpenses', authenticateToken, getExpenses);
 router.get('/getExpenseTransactionsForUser/:userId', authenticateToken, getExpenseTransactionsForUser);
 router.get('/getIncome', authenticateToken, getIncome);
 router.get('/getIncomeTransactionsForUser/:userId', authenticateToken, getIncomeTransactionsForUser);
+router.get('/getExpensesForCategory/:categoryName/:userId', authenticateToken, getTransactionsForCategory);
 router.put('/editTransaction/:id', authenticateToken, editTransaction);
 router.delete('/deleteTransaction/:id', authenticateToken, deleteTransaction);
 
