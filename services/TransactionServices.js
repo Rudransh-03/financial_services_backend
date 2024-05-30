@@ -203,6 +203,14 @@ const editTransaction = async (req, res) => {
 
   if(type === 'income' && categoryName) return res.status(400).json({ error: 'Income type transaction cannot have a cateogry name'});
 
+  const oldTransaction = await prismaClient.transaction.findUnique({
+    where:{
+      id
+    }
+  });
+
+  if(oldTransaction.type !== type) return res.status(400).json({error: 'You cannot convert an income transaction to an expense transaction or vice-versa. Either delete and create a new transaction or edit another transaction'});
+
   try {
 
     const editDataBody = {
@@ -211,16 +219,53 @@ const editTransaction = async (req, res) => {
         type
     }
 
-    if(type === 'expense'){
-        const category = await prismaClient.category.findFirst({
-            where: { name: categoryName.toLowerCase() },
-          });
-      
-          if (!category) {
-            return res.status(400).json({ error: 'Category not found' });
-          }
+    // console.log(oldTransaction.categoryId);
 
-          editDataBody.categoryId = category.id;
+    if(type === 'expense'){
+      const date = oldTransaction.date;
+      const oldCategoryId = oldTransaction.categoryId;
+      
+      const budgets = await prismaClient.budget.findMany({
+        where:{
+          categoryId: oldCategoryId,
+          startDate :{
+            lte: date
+          },
+          endDate:{
+            gte: date
+          }
+        }
+      })
+
+      if(!budgets) console.log("no budgets");
+
+      // console.log(budgets);
+
+
+      for(let budget of budgets){
+        if(budget.leftAmount + oldTransaction.amount - amount < 0) res.status(500).send({error : 'You are going overbudget for this transaction'});
+        
+        const newAmount = budget.leftAmount + oldTransaction.amount - amount;
+        
+        await prismaClient.budget.update({
+          where:{ id: budget.id},
+          data : {
+            leftAmount : newAmount
+          }
+        })
+      }
+
+      const category = await prismaClient.category.findFirst({
+          where: { name: categoryName.toLowerCase() },
+        });
+    
+        if (!category) {
+          return res.status(400).json({ error: 'Category not found' });
+        }
+
+        editDataBody.categoryId = category.id;
+
+
     }
 
     const updatedTransaction = await prismaClient.transaction.update({
@@ -236,6 +281,36 @@ const editTransaction = async (req, res) => {
 
 const deleteTransaction = async (req, res) => {
   const id  = parseInt(req.params.id, 10);
+
+  const transaction = await prismaClient.transaction.findUnique({
+    where:{
+      id
+    }
+  })
+
+  if(transaction.type === 'expense'){
+    const categoryId = transaction.categoryId;
+    const budgets = await prismaClient.budget.findMany({
+      where:{
+        categoryId,
+        startDate:{
+          lte: transaction.date
+        },
+        endDate:{
+          gte: transaction.date
+        }
+      }
+    });
+
+    // console.log(budgets);
+
+    for(let budget of budgets){
+      await prismaClient.budget.update({
+        where: { id: budget.id },
+        data: { leftAmount: { increment: transaction.amount } },
+      });
+    }
+  }
 
   try {
     await prismaClient.transaction.delete({ where: { id } });
