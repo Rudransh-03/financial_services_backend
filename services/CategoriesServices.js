@@ -11,7 +11,6 @@ const createCategory = async (req, res) => {
   const lowerCaseCategoryName = name.toLowerCase();
 
   try {
-    console.log(lowerCaseCategoryName);
     const category = await prismaClient.category.create({
       data: { name: lowerCaseCategoryName },
     });

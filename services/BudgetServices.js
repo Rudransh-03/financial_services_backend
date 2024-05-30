@@ -40,11 +40,10 @@ const createBudget = async (req, res) => {
             return res.status(400).json({ error: 'You cannot create multiple budgets for the same category for the same start/end dates' });
         }
 
-        const response = await axios.get("https://api.currencyapi.com/v3/latest?apikey=cur_live_GXATdj3zu93D8WwReUa6gyab1B8kzggNaFxI9sZ3");
-        const currencies = response.data.data;
+        // const response = await axios.get(`https://api.currencyapi.com/v3/latest?apikey=${process.env.CURRENCY_API_KEY}`);
+        // const currencies = response.data.data;
         
-        const usdObject = Object.values(currencies).find(currency => currency.code === 'USD');
-        console.log(usdObject);
+        // const usdObject = Object.values(currencies).find(currency => currency.code === 'USD');
 
         const budget = await prismaClient.budget.create({
             data: {
@@ -81,8 +80,6 @@ const trackBudget = async (req, res) => {
     const categoryName = req.query.categoryName;
     const lowerCaseCategoryName = categoryName.toLowerCase();
     const userId = parseInt(req.query.userId, 10);
-
-    console.log(categoryName+" "+userId);
 
     try {
         const category = await prismaClient.category.findUnique({
@@ -145,18 +142,12 @@ const editBudget = async (req, res) => {
             }
         })
 
-        // console.log(oldBudget);
-
         const amountDiff = amount - oldBudget.amount;
         var leftAmount = oldBudget.leftAmount + amountDiff;
-
-        // console.log(leftAmount);
 
         const category = await prismaClient.category.findFirst({
             where: { name: lowerCaseCategoryName },
         });
-
-        // console.log(category);
 
         if (!category) {
             return res.status(400).json({ error: 'Category not found' });
@@ -173,7 +164,6 @@ const editBudget = async (req, res) => {
             },
         });
 
-        console.log(categoryId+" "+oldBudget.categoryId);
 
         if (isPresent && (categoryId !== oldBudget.categoryId)) {
             return res.status(400).json({ error: 'You cannot create multiple budgets for the same category for the same start/end dates' });

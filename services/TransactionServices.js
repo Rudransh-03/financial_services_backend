@@ -140,9 +140,7 @@ const getIncome = async (req, res) => {
 };
 
 const getIncomeTransactionsForUser = async (req, res) => {
-  // console.log(req.params);
   const userId = parseInt(req.params.userId, 10);
-  // console.log(userId);
 
   try {
     const incomes = await prismaClient.transaction.findMany({
@@ -182,8 +180,6 @@ const getTransactionsForCategory = async (req, res) => {
       include: { category: true },
     })
 
-    console.log(expenses);
-
     res.json(expenses);
   } catch (error) {
     res.status(500).json({ error: 'Error fetching expenses for this category' });
@@ -219,8 +215,6 @@ const editTransaction = async (req, res) => {
         type
     }
 
-    // console.log(oldTransaction.categoryId);
-
     if(type === 'expense'){
       const date = oldTransaction.date;
       const oldCategoryId = oldTransaction.categoryId;
@@ -237,10 +231,15 @@ const editTransaction = async (req, res) => {
         }
       })
 
-      if(!budgets) console.log("no budgets");
+      const category = await prismaClient.category.findFirst({
+        where: { name: categoryName.toLowerCase() },
+      });
+  
+      if (!category) {
+        return res.status(400).json({ error: 'Category not found' });
+      }
 
-      // console.log(budgets);
-
+      editDataBody.categoryId = category.id;
 
       for(let budget of budgets){
         if(budget.leftAmount + oldTransaction.amount - amount < 0) res.status(500).send({error : 'You are going overbudget for this transaction'});
@@ -254,18 +253,6 @@ const editTransaction = async (req, res) => {
           }
         })
       }
-
-      const category = await prismaClient.category.findFirst({
-          where: { name: categoryName.toLowerCase() },
-        });
-    
-        if (!category) {
-          return res.status(400).json({ error: 'Category not found' });
-        }
-
-        editDataBody.categoryId = category.id;
-
-
     }
 
     const updatedTransaction = await prismaClient.transaction.update({
@@ -301,8 +288,6 @@ const deleteTransaction = async (req, res) => {
         }
       }
     });
-
-    // console.log(budgets);
 
     for(let budget of budgets){
       await prismaClient.budget.update({
